@@ -157,10 +157,3 @@ autocmd("BufWritePre", {
   end,
 })
 
--- Auto-format on save (optional - uncomment if you want)
--- autocmd("BufWritePre", {
---   group = augroup("auto_format", { clear = true }),
---   callback = function()
---     vim.lsp.buf.format({ async = false })
---   end,
--- })

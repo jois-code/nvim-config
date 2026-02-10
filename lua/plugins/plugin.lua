@@ -1,13 +1,35 @@
 return {
   -- Theme
-  {
+  --[[{
     "olimorris/onedarkpro.nvim",
     priority = 1000,
     config = function()
       vim.cmd("colorscheme onedark")
     end,
-  },
-
+  },]]
+   {
+  "catppuccin/nvim",
+  name = "catppuccin",
+  priority = 1000, -- load early so other plugins (lualine, treesitter, etc.) see the colors
+  config = function()
+    require("catppuccin").setup({
+      flavour = "mocha",                 -- latte, frappe, macchiato, mocha
+      background = { light = "latte", dark = "mocha" },
+      transparent_background = false,
+      term_colors = true,
+      integrations = {
+        -- enable integrations you use; examples:
+        nvimtree = true,
+        treesitter = true,
+        telescope = true,
+        lualine = true,
+        gitsigns = true,
+        indent_blankline = { enabled = true },
+      },
+    })
+    vim.cmd.colorscheme("catppuccin")
+  end,
+    },
   -- Treesitter: better syntax highlighting
   {
     "nvim-treesitter/nvim-treesitter",
@@ -18,7 +40,7 @@ return {
     },
     config = function()
       require("nvim-treesitter.configs").setup({
-        ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css", "json", "markdown" },
+        ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css", "json", "markdown" ,"c"},
         auto_install = true,
         highlight = { enable = true },
         indent = { enable = true },
@@ -80,8 +102,7 @@ return {
       telescope.load_extension("fzf")
     end,
   },
-
-  -- LSP Configuration
+-- LSP Configuration
   {
     "neovim/nvim-lspconfig",
     event = { "BufReadPre", "BufNewFile" },
@@ -112,47 +133,60 @@ return {
 
       require("mason-lspconfig").setup({
         ensure_installed = {
-          "lua_ls",
-          "pyright",
-          "ts_ls",
-          "html",
-          "cssls",
-          "jsonls",
+          "lua_ls", "pyright", "ts_ls", "html", "cssls", "jsonls","astro"
         },
         automatic_installation = true,
       })
 
       -- Diagnostic configuration
       vim.diagnostic.config({
-        virtual_text = {
-          prefix = "●",
-        },
+        virtual_text = { prefix = "●" },
         signs = true,
         underline = true,
         update_in_insert = false,
         severity_sort = true,
-        float = {
-          border = "rounded",
-          source = "always",
-        },
+        float = { border = "rounded", source = "always" },
       })
 
-      -- Change diagnostic symbols in sign column
       local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
       for type, icon in pairs(signs) do
         local hl = "DiagnosticSign" .. type
         vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
       end
 
+      -- ==========================================================
+      --  CUSTOM TOGGLE: Intellisense (Space + t + i)
+      -- ==========================================================
+      vim.g.cmp_is_enabled = true -- Enabled by default
+
+      vim.keymap.set("n", "<leader>ti", function()
+        vim.g.cmp_is_enabled = not vim.g.cmp_is_enabled
+        if vim.g.cmp_is_enabled then
+          print("Intellisense Enabled")
+        else
+          require("cmp").abort() -- Close menu immediately
+          print("Intellisense Disabled")
+        end
+      end, { desc = "Toggle Intellisense" })
+      -- ==========================================================
+
       -- nvim-cmp setup
       local cmp = require("cmp")
       local luasnip = require("luasnip")
       local lspkind = require("lspkind")
 
-      -- Load VSCode-style snippets
       require("luasnip.loaders.from_vscode").lazy_load()
 
       cmp.setup({
+        -- CHECK THE TOGGLE VARIABLE HERE
+        enabled = function()
+          -- Always enable completion in command mode (:) even if disabled in code
+          if vim.api.nvim_get_mode().mode == "c" then
+            return true
+          end
+          return vim.g.cmp_is_enabled
+        end,
+
         snippet = {
           expand = function(args)
             luasnip.lsp_expand(args.body)
@@ -218,10 +252,8 @@ return {
         },
       })
 
-      -- LSP servers setup using new vim.lsp.config API (Neovim 0.11+)
+      -- LSP servers setup
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      -- Helper function for LSP setup
       local function setup_lsp(server_name, extra_config)
         extra_config = extra_config or {}
         extra_config.capabilities = capabilities
@@ -229,7 +261,6 @@ return {
         vim.lsp.enable(server_name)
       end
 
-      -- Lua
       setup_lsp("lua_ls", {
         settings = {
           Lua = {
@@ -239,21 +270,13 @@ return {
           },
         },
       })
-
-      -- Python
       setup_lsp("pyright")
-
-      -- JavaScript / TypeScript
       setup_lsp("ts_ls")
-
-      -- HTML
       setup_lsp("html")
-
-      -- CSS
       setup_lsp("cssls")
-
-      -- JSON
       setup_lsp("jsonls")
+      setup_lsp("clangd")
+      setup_lsp("astro")
     end,
   },
 
@@ -413,7 +436,7 @@ return {
     config = function()
       require("lualine").setup({
         options = {
-          theme = "onedark",
+          theme = "catppuccin",
           component_separators = { left = "|", right = "|" },
           section_separators = { left = "", right = "" },
         },

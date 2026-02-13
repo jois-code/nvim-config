@@ -21,7 +21,7 @@ return {
   -- Formatters must be installed separately (mason installs them).
   {
     "stevearc/conform.nvim",
-    event = "BufWritePre",
+    event = "VeryLazy",
     cmd   = "ConformInfo",
     keys  = {
       {
@@ -48,10 +48,7 @@ return {
           cpp        = { "clang_format" },
           astro      = { "prettier" },
         },
-        format_on_save = {
-          timeout_ms   = 800,
-          lsp_fallback = true,
-        },
+
       })
     end,
   },
@@ -62,14 +59,16 @@ return {
     event = { "BufReadPost", "BufNewFile", "BufWritePost" },
     config = function()
       local lint = require("lint")
+      local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
+
       lint.linters_by_ft = {
         python     = { "ruff" },
         javascript = { "eslint_d" },
         typescript = { "eslint_d" },
         typescriptreact = { "eslint_d" },
         javascriptreact = { "eslint_d" },
-        c          = { "clangtidy" },
-        cpp        = { "clangtidy" },
+        -- C/C++ linting is handled by clangd LSP directly (--clang-tidy flag)
+        -- No separate linter needed here
       }
 
       vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
@@ -107,6 +106,25 @@ return {
         },
         automatic_installation = true,
       })
+
+      -- Auto-install non-LSP tools (formatters + linters) via Mason
+      local mason_registry = require("mason-registry")
+      local tools = {
+        "clang-format",
+        "stylua",
+        "black", "isort", "ruff",
+        "prettier", "eslint_d",
+      }
+      mason_registry.refresh(function()
+        for _, tool in ipairs(tools) do
+          local ok, pkg = pcall(function() return mason_registry.get_package(tool) end)
+          if ok and not pkg:is_installed() then
+            pkg:install()
+          end
+        end
+      end)
+
+
 
       -- ── Diagnostics UI ──────────────────────────────────────────────────
       vim.diagnostic.config({

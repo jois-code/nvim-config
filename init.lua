@@ -115,6 +115,10 @@ map("n", "<leader>sc", ":close<CR>",  { desc = "Close Split" })
 map("n", "<leader>so", ":only<CR>",   { desc = "Close Other Splits" })
 map("n", "<leader>se", "<C-w>=",      { desc = "Equalize Splits" })
 
+map("n", "<leader>ti", function()
+  vim.b.completion = not (vim.b.completion ~= false)
+  vim.notify(vim.b.completion ~= false and "Completion ON" or "Completion OFF")
+end, { desc = "Toggle completion" })
 -- Resize splits with arrow keys
 map("n", "<C-Up>",    ":resize +2<CR>",           { desc = "Increase height" })
 map("n", "<C-Down>",  ":resize -2<CR>",            { desc = "Decrease height" })

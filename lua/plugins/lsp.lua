@@ -71,14 +71,21 @@ return {
   },
 
   -- ── blink.cmp (modern completion — replaces nvim-cmp) ───────────────────
-  -- Zero deprecation warnings, faster, built for Nvim 0.10+
+  -- IMPORTANT: opts must be a *function* so that `enabled` is re-evaluated
+  -- on every keystroke rather than only once at startup.
   {
     "saghen/blink.cmp",
     lazy = false,
     version = "*",
     dependencies = { "rafamadriz/friendly-snippets" },
-    opts = {
-      keymap = {
+    opts = function(_, opts)
+      -- vim.b.completion = nil/true → ON (default)
+      -- vim.b.completion = false    → OFF  (set by <leader>ti toggle below)
+      opts.enabled = function()
+        return vim.b.completion ~= false
+      end
+
+      opts.keymap = {
         preset = "default",
         ["<CR>"]      = { "accept", "fallback" },
         ["<Tab>"]     = { "select_next", "snippet_forward", "fallback" },
@@ -87,15 +94,18 @@ return {
         ["<C-b>"]     = { "scroll_documentation_up", "fallback" },
         ["<C-f>"]     = { "scroll_documentation_down", "fallback" },
         ["<C-Space>"] = { "show", "show_documentation", "hide_documentation" },
-      },
-      appearance = {
+      }
+
+      opts.appearance = {
         use_nvim_cmp_as_default = false,
         nerd_font_variant = "mono",
-      },
-      sources = {
+      }
+
+      opts.sources = {
         default = { "lsp", "path", "snippets", "buffer" },
-      },
-      completion = {
+      }
+
+      opts.completion = {
         documentation = {
           auto_show = true,
           auto_show_delay_ms = 200,
@@ -111,9 +121,12 @@ return {
           },
         },
         ghost_text = { enabled = true },
-      },
-      signature = { enabled = true, window = { border = "rounded" } },
-    },
+      }
+
+      opts.signature = { enabled = true, window = { border = "rounded" } }
+
+      return opts
+    end,
   },
 
   -- ── LSP (nvim-lspconfig + mason-lspconfig) ──────────────────────────────
@@ -233,6 +246,19 @@ return {
       setup("cssls")
       setup("jsonls")
       setup("astro")
+
+      -- ── Completion toggle: <leader>ti ────────────────────────────────────
+      -- Toggles vim.b.completion per buffer. blink.cmp re-reads `enabled`
+      -- on every keypress because opts is a function (not a plain table).
+      vim.keymap.set("n", "<leader>ti", function()
+        if vim.b.completion == false then
+          vim.b.completion = true
+          vim.api.nvim_echo({ { " Completion ON", "DiagnosticOk" } }, false, {})
+        else
+          vim.b.completion = false
+          vim.api.nvim_echo({ { " Completion OFF", "DiagnosticWarn" } }, false, {})
+        end
+      end, { desc = "Toggle intellisense" })
     end,
   },
 }
